@@ -64,23 +64,34 @@ public class ASTListener extends ICSSBaseListener {
 			default: selector = new TagSelector(symbol);
 		}
 
-		ASTNode parent = currentContainer.peek();
-		parent.addChild(selector);
-
-		System.out.println("b");
+		currentContainer.peek().addChild(selector);
 	}
 
-	@Override public void exitSelector(ICSSParser.SelectorContext ctx) { }
+	@Override public void exitSelector(ICSSParser.SelectorContext ctx) {
 
-	@Override public void enterDeclaration(ICSSParser.DeclarationContext ctx) { }
+	}
 
-	@Override public void exitDeclaration(ICSSParser.DeclarationContext ctx) { }
+	@Override public void enterDeclaration(ICSSParser.DeclarationContext ctx) {
+		Declaration declaration = new Declaration();
+
+		currentContainer.peek().addChild(declaration);
+
+		currentContainer.push(declaration);
+	}
+
+	@Override public void exitDeclaration(ICSSParser.DeclarationContext ctx) {
+		currentContainer.pop();
+	}
 
 	@Override public void enterLiteral(ICSSParser.LiteralContext ctx) { }
 
 	@Override public void exitLiteral(ICSSParser.LiteralContext ctx) { }
 
-	@Override public void enterPropertyName(ICSSParser.PropertyNameContext ctx) { }
+	@Override public void enterPropertyName(ICSSParser.PropertyNameContext ctx) {
+		PropertyName propertyName = new PropertyName(ctx.getText());
+
+		currentContainer.peek().addChild(propertyName);
+	}
 
 	@Override public void exitPropertyName(ICSSParser.PropertyNameContext ctx) { }
 
@@ -92,7 +103,11 @@ public class ASTListener extends ICSSBaseListener {
 
 	@Override public void exitVariableReference(ICSSParser.VariableReferenceContext ctx) { }
 
-	@Override public void enterExpression(ICSSParser.ExpressionContext ctx) { }
+	@Override public void enterExpression(ICSSParser.ExpressionContext ctx) {
+		Expression expression;
+
+		//switch (ctx)
+	}
 
 	@Override public void exitExpression(ICSSParser.ExpressionContext ctx) { }
 
