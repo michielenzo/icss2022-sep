@@ -3,10 +3,10 @@ package nl.han.ica.icss;
 import nl.han.ica.icss.ast.AST;
 import nl.han.ica.icss.checker.Checker;
 import nl.han.ica.icss.checker.SemanticError;
+import nl.han.ica.icss.gen.ICSSLexer;
+import nl.han.ica.icss.gen.ICSSParser;
 import nl.han.ica.icss.generator.Generator;
 import nl.han.ica.icss.parser.ASTListener;
-import nl.han.ica.icss.parser.ICSSLexer;
-import nl.han.ica.icss.parser.ICSSParser;
 import nl.han.ica.icss.transforms.Evaluator;
 import org.antlr.v4.runtime.*;
 import org.antlr.v4.runtime.atn.ATNConfigSet;
@@ -55,6 +55,7 @@ public class Pipeline implements ANTLRErrorListener {
         lexer.removeErrorListeners();
         lexer.addErrorListener(this);
         errors.clear();
+
         try {
             CommonTokenStream tokens = new CommonTokenStream(lexer);
 
@@ -83,6 +84,7 @@ public class Pipeline implements ANTLRErrorListener {
         parsed = errors.isEmpty();
         checked = transformed = false;
     }
+
     public boolean check() {
             if(ast == null)
                 return false;
@@ -114,6 +116,7 @@ public class Pipeline implements ANTLRErrorListener {
 
         transformed = errors.isEmpty();
     }
+
     public String generate() {
         Generator generator = new Generator();
         return generator.generate(ast);
