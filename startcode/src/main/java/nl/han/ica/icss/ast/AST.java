@@ -13,6 +13,7 @@ public class AST {
 	public AST() {
 		root = new Stylesheet();
 	}
+
 	public AST(Stylesheet stylesheet) {
 		root = stylesheet;
 	}

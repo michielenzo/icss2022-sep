@@ -1,10 +1,14 @@
 package nl.han.ica.icss.parser;
 
-import java.util.Stack;
+import java.util.List;
 
 import nl.han.ica.datastructures.HANStack;
 import nl.han.ica.datastructures.IHANStack;
 import nl.han.ica.icss.ast.*;
+import nl.han.ica.icss.ast.literals.*;
+import nl.han.ica.icss.ast.operations.AddOperation;
+import nl.han.ica.icss.ast.operations.MultiplyOperation;
+import nl.han.ica.icss.ast.operations.SubtractOperation;
 import nl.han.ica.icss.ast.selectors.ClassSelector;
 import nl.han.ica.icss.ast.selectors.IdSelector;
 import nl.han.ica.icss.ast.selectors.TagSelector;
@@ -12,6 +16,7 @@ import nl.han.ica.icss.gen.ICSSBaseListener;
 import nl.han.ica.icss.gen.ICSSParser;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.tree.ErrorNode;
+import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
 /**
@@ -35,7 +40,9 @@ public class ASTListener extends ICSSBaseListener {
     }
 
 	@Override public void enterStylesheet(ICSSParser.StylesheetContext ctx) {
-		currentContainer.push(new Stylesheet());
+		Stylesheet stylesheet = new Stylesheet();
+		currentContainer.push(stylesheet);
+		ast.setRoot(stylesheet);
 	}
 
 	@Override public void exitStylesheet(ICSSParser.StylesheetContext ctx) {
@@ -95,41 +102,87 @@ public class ASTListener extends ICSSBaseListener {
 
 	@Override public void exitPropertyName(ICSSParser.PropertyNameContext ctx) { }
 
-	@Override public void enterVariableAssignment(ICSSParser.VariableAssignmentContext ctx) { }
+	@Override public void enterVariableAssignment(ICSSParser.VariableAssignmentContext ctx) {
+		VariableAssignment variableAssignment = new VariableAssignment();
 
-	@Override public void exitVariableAssignment(ICSSParser.VariableAssignmentContext ctx) { }
+		currentContainer.peek().addChild(variableAssignment);
+		currentContainer.push(variableAssignment);
+	}
 
-	@Override public void enterVariableReference(ICSSParser.VariableReferenceContext ctx) { }
+	@Override public void exitVariableAssignment(ICSSParser.VariableAssignmentContext ctx) {
+		currentContainer.pop();
+	}
+
+	@Override public void enterVariableReference(ICSSParser.VariableReferenceContext ctx) {
+		VariableReference variableReference = new VariableReference(ctx.getText());
+
+		currentContainer.peek().addChild(variableReference);
+	}
 
 	@Override public void exitVariableReference(ICSSParser.VariableReferenceContext ctx) { }
 
 	@Override public void enterExpression(ICSSParser.ExpressionContext ctx) {
+
 		Expression expression;
 
-		//switch (ctx)
+		if(ctx.children.size() > 1) {
+			switch (ctx.getChild(1).getText()){
+				case "*":;  expression = new MultiplyOperation(); break;
+				case "-":; expression = new SubtractOperation(); break;
+				case "+":; expression = new AddOperation(); break;
+				default: throw new IllegalStateException("Unexpected value: " + ctx.getChild(1).getText());
+			}
+
+			currentContainer.peek().addChild(expression);
+			currentContainer.push(expression);
+		} else {
+			if (ctx.getChild(0).getText().equals("TRUE") | ctx.getChild(0).getText().equals("FALSE")){
+				expression = new BoolLiteral(ctx.getChild(0).getText());
+			} else if(Character.isUpperCase(ctx.getChild(0).getText().charAt(0))){
+				return;
+			} else if (ctx.getChild(0).getText().charAt(0) == '#'){
+				expression = new ColorLiteral(ctx.getChild(0).getText());
+			} else if (ctx.getChild(0).getText().charAt(ctx.getChild(0).getText().length() - 1) == 'x') {
+				expression = new PixelLiteral(ctx.getChild(0).getText());
+			} else if (ctx.getChild(0).getText().charAt(ctx.getChild(0).getText().length() - 1) == '%') {
+				expression = new PercentageLiteral(ctx.getChild(0).getText());
+			} else {
+				expression = new ScalarLiteral(ctx.getChild(0).getText());
+			}
+
+			currentContainer.peek().addChild(expression);
+		}
 	}
 
-	@Override public void exitExpression(ICSSParser.ExpressionContext ctx) { }
+	@Override public void exitExpression(ICSSParser.ExpressionContext ctx) {
+		if (ctx.children.size() > 1) { currentContainer.pop(); }
+	}
 
 	@Override public void enterOperation(ICSSParser.OperationContext ctx) { }
 
 	@Override public void exitOperation(ICSSParser.OperationContext ctx) { }
 
-	@Override public void enterIfClause(ICSSParser.IfClauseContext ctx) { }
+	@Override public void enterIfClause(ICSSParser.IfClauseContext ctx) {
+		IfClause ifClause = new IfClause();
 
-	@Override public void exitIfClause(ICSSParser.IfClauseContext ctx) { }
+		currentContainer.peek().addChild(ifClause);
+		currentContainer.push(ifClause);
+	}
 
-	@Override public void enterCondition(ICSSParser.ConditionContext ctx) { }
+	@Override public void exitIfClause(ICSSParser.IfClauseContext ctx) {
+		currentContainer.pop();
+	}
 
-	@Override public void exitCondition(ICSSParser.ConditionContext ctx) { }
+	@Override public void enterElseClause(ICSSParser.ElseClauseContext ctx) {
+		ElseClause elseClause = new ElseClause();
 
-	@Override public void enterIfElseBody(ICSSParser.IfElseBodyContext ctx) { }
+		currentContainer.peek().addChild(elseClause);
+		currentContainer.push(elseClause);
+	}
 
-	@Override public void exitIfElseBody(ICSSParser.IfElseBodyContext ctx) { }
-
-	@Override public void enterElseClause(ICSSParser.ElseClauseContext ctx) { }
-
-	@Override public void exitElseClause(ICSSParser.ElseClauseContext ctx) { }
+	@Override public void exitElseClause(ICSSParser.ElseClauseContext ctx) {
+		currentContainer.pop();
+	}
 
 	@Override public void enterEveryRule(ParserRuleContext ctx) { }
 

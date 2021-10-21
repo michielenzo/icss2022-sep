@@ -13,14 +13,13 @@ propertyName: COLOR_PROP | BG_COLOR_PROP | WIDTH_PROP | HEIGHT_PROP;
 // Variables
 variableAssignment: variableReference ASSIGNMENT_OPERATOR expression SEMICOLON;
 variableReference: CAPITAL_IDENT;
-expression: (literal | variableReference) (operation (literal | variableReference))*;
+expression: expression operation expression | (literal | variableReference);
 operation: PLUS | MIN | MUL;
 
 // IF ELSE
-ifClause: IF condition OPEN_BRACE ifElseBody CLOSE_BRACE elseClause?;
-condition: BOX_BRACKET_OPEN (TRUE | FALSE | variableReference) BOX_BRACKET_CLOSE;
-ifElseBody: (declaration | ifClause | variableAssignment)*;
-elseClause: ELSE OPEN_BRACE ifElseBody CLOSE_BRACE;
+ifClause: IF BOX_BRACKET_OPEN (TRUE | FALSE | variableReference) BOX_BRACKET_CLOSE
+          OPEN_BRACE (declaration | ifClause | variableAssignment)* CLOSE_BRACE elseClause?;
+elseClause: ELSE OPEN_BRACE (declaration | ifClause | variableAssignment)* CLOSE_BRACE;
 
 //--- LEXER: ---
 
