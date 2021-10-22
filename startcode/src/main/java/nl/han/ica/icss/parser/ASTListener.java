@@ -23,12 +23,23 @@ import org.antlr.v4.runtime.tree.TerminalNode;
  * This class extracts the ICSS Abstract Syntax Tree from the Antlr Parse tree.
  */
 public class ASTListener extends ICSSBaseListener {
-	
+
+
 	//Accumulator attributes:
 	private AST ast;
 
 	//Use this to keep track of the parent nodes when recursively traversing the ast
 	private IHANStack<ASTNode> currentContainer;
+
+	public static final String ASTRIX = "*";
+	public static final String DASH = "-";
+	public static final String PLUS = "+";
+	public static final String TRUE = "TRUE";
+	public static final String FALSE = "FALSE";
+	public static final char X = 'x';
+	public static final char POUND_SIGN = '#';
+	public static final char PERCENTAGE = '%';
+	public static final char DOT = '.';
 
 	public ASTListener() {
 		ast = new AST();
@@ -61,14 +72,15 @@ public class ASTListener extends ICSSBaseListener {
 
 	@Override public void enterSelector(ICSSParser.SelectorContext ctx) {
 
-		String symbol = ctx.getChild(0).getText();
+		char symbol = ctx.getChild(0).getText().charAt(0);
 
 		Selector selector;
 
-		switch (symbol.charAt(0)){
-			case '.': selector = new IdSelector(symbol); break;
-			case '#': selector = new ClassSelector(symbol); break;
-			default: selector = new TagSelector(symbol);
+		switch (symbol){
+			case DOT: selector = new IdSelector(Character.toString(symbol)); break;
+			case POUND_SIGN: selector = new ClassSelector(Character.toString(symbol)); break;
+
+			default: selector = new TagSelector(Character.toString(symbol));
 		}
 
 		currentContainer.peek().addChild(selector);
@@ -125,33 +137,57 @@ public class ASTListener extends ICSSBaseListener {
 
 		Expression expression;
 
-		if(ctx.children.size() > 1) {
-			switch (ctx.getChild(1).getText()){
-				case "*":;  expression = new MultiplyOperation(); break;
-				case "-":; expression = new SubtractOperation(); break;
-				case "+":; expression = new AddOperation(); break;
-				default: throw new IllegalStateException("Unexpected value: " + ctx.getChild(1).getText());
+		if(expressionIsOperation(ctx)) {
+			String text = ctx.getChild(1).getText();
+
+			switch (text){
+				case ASTRIX:  expression = new MultiplyOperation(); break;
+				case DASH: expression = new SubtractOperation(); break;
+				case PLUS: expression = new AddOperation(); break;
+				default: throw new IllegalStateException("Unexpected value: " + text);
 			}
 
 			currentContainer.peek().addChild(expression);
 			currentContainer.push(expression);
 		} else {
-			if (ctx.getChild(0).getText().equals("TRUE") | ctx.getChild(0).getText().equals("FALSE")){
-				expression = new BoolLiteral(ctx.getChild(0).getText());
-			} else if(Character.isUpperCase(ctx.getChild(0).getText().charAt(0))){
+			String text = ctx.getChild(0).getText();
+
+			if (text.equals(TRUE) | text.equals(FALSE)){
+				expression = new BoolLiteral(text);
+			} else if(expressionIsVariableReference(text)){
 				return;
-			} else if (ctx.getChild(0).getText().charAt(0) == '#'){
-				expression = new ColorLiteral(ctx.getChild(0).getText());
-			} else if (ctx.getChild(0).getText().charAt(ctx.getChild(0).getText().length() - 1) == 'x') {
-				expression = new PixelLiteral(ctx.getChild(0).getText());
-			} else if (ctx.getChild(0).getText().charAt(ctx.getChild(0).getText().length() - 1) == '%') {
-				expression = new PercentageLiteral(ctx.getChild(0).getText());
+			} else if (expressionIsColorLiteral(text)){
+				expression = new ColorLiteral(text);
+			} else if (expressionIsPixelLiteral(text)) {
+				expression = new PixelLiteral(text);
+			} else if (expressionIsPercentageLiteral(text)) {
+				expression = new PercentageLiteral(text);
 			} else {
-				expression = new ScalarLiteral(ctx.getChild(0).getText());
+				expression = new ScalarLiteral(text);
 			}
 
 			currentContainer.peek().addChild(expression);
 		}
+	}
+
+	private boolean expressionIsPercentageLiteral(String text) {
+		return text.charAt(text.length() - 1) == PERCENTAGE;
+	}
+
+	private boolean expressionIsPixelLiteral(String text) {
+		return text.charAt(text.length() - 1) == X;
+	}
+
+	private boolean expressionIsColorLiteral(String text) {
+		return text.charAt(0) == POUND_SIGN;
+	}
+
+	private boolean expressionIsVariableReference(String text) {
+		return Character.isUpperCase(text.charAt(0));
+	}
+
+	private boolean expressionIsOperation(ICSSParser.ExpressionContext ctx ){
+		return ctx.children.size() > 1;
 	}
 
 	@Override public void exitExpression(ICSSParser.ExpressionContext ctx) {

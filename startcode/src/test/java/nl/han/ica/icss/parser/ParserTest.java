@@ -60,6 +60,7 @@ class ParserTest {
 		AST exp = Fixtures.uncheckedLevel0();
 		assertEquals(exp,sut);
 	}
+
 	@Test
 	void testParseLevel1() throws IOException {
 
@@ -67,6 +68,7 @@ class ParserTest {
 		AST exp = Fixtures.uncheckedLevel1();
 		assertEquals(exp,sut);
 	}
+
 	@Test
 	void testParseLevel2() throws IOException {
 
@@ -74,6 +76,7 @@ class ParserTest {
 		AST exp = Fixtures.uncheckedLevel2();
 		assertEquals(exp,sut);
 	}
+
 	@Test
 	void testParseLevel3() throws IOException {
 
