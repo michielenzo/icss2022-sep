@@ -5,6 +5,7 @@ import nl.han.ica.datastructures.IHANLinkedList;
 import nl.han.ica.icss.ast.*;
 import nl.han.ica.icss.ast.literals.*;
 import nl.han.ica.icss.ast.operations.AddOperation;
+import nl.han.ica.icss.ast.operations.MultiplyOperation;
 import nl.han.ica.icss.ast.operations.SubtractOperation;
 import nl.han.ica.icss.ast.types.ExpressionType;
 
@@ -25,9 +26,41 @@ public class Checker {
 
         determineExpTypeOfVarDeclaration(astNode);
         checkVarRefsDeclared(astNode);
+        checkOperation(astNode);
 
         for (ASTNode childNode: astNode.getChildren()) {
             walkThroughTreeRecursive(childNode);
+        }
+    }
+
+    private void checkOperation(ASTNode astNode) {
+        if(astNode instanceof SubtractOperation || astNode instanceof AddOperation) {
+            if(isAddOrSubtractOperationWithDistinctLiterals((Operation) astNode)) {
+                astNode.setError("TypeError: Cannot add or subtract with distinct literals.");
+            }
+        }
+
+        if(astNode instanceof MultiplyOperation) {
+            if(isMultiplyOperationWithoutScalars((MultiplyOperation) astNode)) {
+                astNode.setError("TypeError: Cannot multiply with only non scalars");
+            }
+        }
+    }
+
+    private boolean isAddOrSubtractOperationWithDistinctLiterals(Operation astNode) {
+        return astNode.lhs.getClass() != astNode.rhs.getClass();
+    }
+
+    private boolean isMultiplyOperationWithoutScalars(MultiplyOperation astNode) {
+        return !(astNode.rhs instanceof ScalarLiteral) &&
+               !(astNode.lhs instanceof ScalarLiteral);
+    }
+
+    private void checkVarRefsDeclared(ASTNode astNode){
+        if(astNode instanceof VariableReference) {
+            if(!isVarRefDeclared(astNode)) {
+                astNode.setError("Variable is not declared.");
+            }
         }
     }
 
@@ -40,14 +73,6 @@ public class Checker {
                     determineExpType(((VariableAssignment) astNode).expression));
 
             variableTypes.addFirst(variableAssignment);
-        }
-    }
-
-    private void checkVarRefsDeclared(ASTNode astNode){
-        if(astNode instanceof VariableReference) {
-            if(!isVarRefDeclared(astNode)) {
-                astNode.setError("Variable is not declared.");
-            }
         }
     }
 
