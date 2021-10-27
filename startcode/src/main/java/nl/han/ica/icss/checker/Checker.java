@@ -26,40 +26,49 @@ public class Checker {
     private void walkThroughTreeRecursive(ASTNode astNode){
 
         determineExpTypeOfVarDeclaration(astNode);
+
         checkVarRefsDeclared(astNode);
         checkOperation(astNode);
-
         checkPropertyDeclaration(astNode);
+        checkIfClause(astNode);
 
         for (ASTNode childNode: astNode.getChildren()) {
             walkThroughTreeRecursive(childNode);
         }
     }
 
-    private void checkPropertyDeclaration(ASTNode astNode) {
-        if(astNode instanceof Declaration){
-            if (propertyIsAColorAndNotAssignedByColorLiteral((Declaration) astNode)){
-                astNode.setError("Color property must be assigned by a color literal.");
-            }
+    private void checkIfClause(ASTNode astNode) {
+        if(astNode instanceof IfClause){
+            Expression conditionalExp = ((IfClause) astNode).conditionalExpression;
 
-            if(propertyIsWidthAndNotAssignedByPixelLiteral((Declaration) astNode)){
-                astNode.setError("Width property must be assigned with a pixel literal.");
+            if(conditionalExp instanceof VariableReference) {
+                for (int i = 0; i < variableTypes.getSize(); i++) {
+                    HashMap<String, ExpressionType> varType = variableTypes.get(i);
+
+                    if (varTypeMatchesWithConditionalExp((VariableReference) conditionalExp, varType)){
+                        if(!declarationIsOfTypeBool((VariableReference) conditionalExp, varType)){
+                            astNode.setError("Variable reference must be of type boolean.");
+                        }
+                    }
+                }
+            } else if(conditionalExp instanceof Operation){
+                astNode.setError("Conditional expression cannot be calculated.");
+            } else if(!(conditionalExp instanceof BoolLiteral)){
+                astNode.setError("Conditional expression must be a boolean.");
             }
         }
     }
 
-    private boolean propertyIsWidthAndNotAssignedByPixelLiteral(Declaration astNode) {
-        ExpressionType expressionType = determineExpType(astNode.expression);
+    private void checkPropertyDeclaration(ASTNode astNode) {
+        if(astNode instanceof Declaration){
+            if (propertyIsAColorAndNotAssignedByColorLiteral((Declaration) astNode)){
+                astNode.setError("Color/background-color property must be assigned by a color literal.");
+            }
 
-        return Objects.equals(astNode.property.name, "width") ||
-               Objects.equals(astNode.property.name, "height") &&
-               expressionType != ExpressionType.PIXEL;
-    }
-
-    private boolean propertyIsAColorAndNotAssignedByColorLiteral(Declaration astNode) {
-        return Objects.equals(astNode.property.name, "color") ||
-               Objects.equals(astNode.property.name, "background-color") &&
-               !(astNode.expression instanceof ColorLiteral);
+            if(propertyIsWidthAndNotAssignedByPixelLiteral((Declaration) astNode)){
+                astNode.setError("Width/height property must be assigned with a pixel literal.");
+            }
+        }
     }
 
     private void checkOperation(ASTNode astNode) {
@@ -80,19 +89,6 @@ public class Checker {
                 astNode.setError("TypeError: Cannot multiply with only non scalars");
             }
         }
-    }
-
-    private boolean operationHasColorLiteral(Operation astNode) {
-        return astNode.lhs instanceof ColorLiteral || astNode.rhs instanceof ColorLiteral;
-    }
-
-    private boolean isAddOrSubtractOperationWithDistinctLiterals(Operation astNode) {
-        return astNode.lhs.getClass() != astNode.rhs.getClass();
-    }
-
-    private boolean isMultiplyOperationWithoutScalars(MultiplyOperation astNode) {
-        return !(astNode.rhs instanceof ScalarLiteral) &&
-               !(astNode.lhs instanceof ScalarLiteral);
     }
 
     private void checkVarRefsDeclared(ASTNode astNode){
@@ -133,6 +129,7 @@ public class Checker {
         if(expTypesInExp.contains(ExpressionType.PIXEL)) countOfNonScalars++;
         if(expTypesInExp.contains(ExpressionType.COLOR)) countOfNonScalars++;
         if(expTypesInExp.contains(ExpressionType.PERCENTAGE)) countOfNonScalars++;
+        if(expTypesInExp.contains(ExpressionType.BOOL)) countOfNonScalars++;
 
         if(countOfNonScalars > 1) {
             exp.setError("TypeError, literals in expression dont match.");
@@ -163,5 +160,40 @@ public class Checker {
                 expTypesInExp.add(ExpressionType.PERCENTAGE);
             }
         }
+    }
+
+    private boolean declarationIsOfTypeBool(VariableReference conditionalExp, HashMap<String, ExpressionType> varType) {
+        return varType.get(conditionalExp.name) == ExpressionType.BOOL;
+    }
+
+    private boolean varTypeMatchesWithConditionalExp(VariableReference conditionalExp, HashMap<String, ExpressionType> variableType) {
+        return variableType.containsKey(conditionalExp.name);
+    }
+
+    private boolean operationHasColorLiteral(Operation astNode) {
+        return astNode.lhs instanceof ColorLiteral || astNode.rhs instanceof ColorLiteral;
+    }
+
+    private boolean isAddOrSubtractOperationWithDistinctLiterals(Operation astNode) {
+        return astNode.lhs.getClass() != astNode.rhs.getClass();
+    }
+
+    private boolean isMultiplyOperationWithoutScalars(MultiplyOperation astNode) {
+        return !(astNode.rhs instanceof ScalarLiteral) &&
+                !(astNode.lhs instanceof ScalarLiteral);
+    }
+
+    private boolean propertyIsWidthAndNotAssignedByPixelLiteral(Declaration astNode) {
+        ExpressionType expressionType = determineExpType(astNode.expression);
+
+        return (Objects.equals(astNode.property.name, "width") ||
+                Objects.equals(astNode.property.name, "height")) &&
+                expressionType != ExpressionType.PIXEL;
+    }
+
+    private boolean propertyIsAColorAndNotAssignedByColorLiteral(Declaration astNode) {
+        return (Objects.equals(astNode.property.name, "color") ||
+                Objects.equals(astNode.property.name, "background-color")) &&
+                !(astNode.expression instanceof ColorLiteral);
     }
 }

@@ -43,6 +43,7 @@ public class ASTPane extends BorderPane {
 	    setMinWidth(200);
         setPrefWidth(400);
 	}
+
     /**
      * Updates the panes based on the current content of the AST
      * @param ast
@@ -50,6 +51,7 @@ public class ASTPane extends BorderPane {
     public void update(AST ast) {
         content.setRoot(astNodeToTreeItem(ast.root));
     }
+
     private TreeItem<ASTNode> astNodeToTreeItem(ASTNode astNode) {
 
         TreeItem<ASTNode> tvNode = new TreeItem<ASTNode>(astNode);

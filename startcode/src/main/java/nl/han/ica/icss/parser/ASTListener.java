@@ -152,7 +152,7 @@ public class ASTListener extends ICSSBaseListener {
 		} else {
 			String text = ctx.getChild(0).getText();
 
-			if (text.equals(TRUE) | text.equals(FALSE)){
+			if (text.equals(TRUE) || text.equals(FALSE)){
 				expression = new BoolLiteral(text);
 			} else if(expressionIsVariableReference(text)){
 				return;
