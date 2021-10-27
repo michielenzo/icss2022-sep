@@ -11,11 +11,12 @@ import nl.han.ica.icss.ast.types.ExpressionType;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 
 public class Checker {
 
-    private IHANLinkedList<HashMap<String, ExpressionType>> variableTypes = new HANLinkedList<>();
+    private final IHANLinkedList<HashMap<String, ExpressionType>> variableTypes = new HANLinkedList<>();
 
     public void check(AST ast) {
         variableTypes.clear();
@@ -28,12 +29,46 @@ public class Checker {
         checkVarRefsDeclared(astNode);
         checkOperation(astNode);
 
+        checkPropertyDeclaration(astNode);
+
         for (ASTNode childNode: astNode.getChildren()) {
             walkThroughTreeRecursive(childNode);
         }
     }
 
+    private void checkPropertyDeclaration(ASTNode astNode) {
+        if(astNode instanceof Declaration){
+            if (propertyIsAColorAndNotAssignedByColorLiteral((Declaration) astNode)){
+                astNode.setError("Color property must be assigned by a color literal.");
+            }
+
+            if(propertyIsWidthAndNotAssignedByPixelLiteral((Declaration) astNode)){
+                astNode.setError("Width property must be assigned with a pixel literal.");
+            }
+        }
+    }
+
+    private boolean propertyIsWidthAndNotAssignedByPixelLiteral(Declaration astNode) {
+        ExpressionType expressionType = determineExpType(astNode.expression);
+
+        return Objects.equals(astNode.property.name, "width") ||
+               Objects.equals(astNode.property.name, "height") &&
+               expressionType != ExpressionType.PIXEL;
+    }
+
+    private boolean propertyIsAColorAndNotAssignedByColorLiteral(Declaration astNode) {
+        return Objects.equals(astNode.property.name, "color") ||
+               Objects.equals(astNode.property.name, "background-color") &&
+               !(astNode.expression instanceof ColorLiteral);
+    }
+
     private void checkOperation(ASTNode astNode) {
+        if(astNode instanceof Operation) {
+            if(operationHasColorLiteral((Operation) astNode)){
+                astNode.setError("TypeError: Cannot operate on a color literal");
+            }
+        }
+
         if(astNode instanceof SubtractOperation || astNode instanceof AddOperation) {
             if(isAddOrSubtractOperationWithDistinctLiterals((Operation) astNode)) {
                 astNode.setError("TypeError: Cannot add or subtract with distinct literals.");
@@ -45,6 +80,10 @@ public class Checker {
                 astNode.setError("TypeError: Cannot multiply with only non scalars");
             }
         }
+    }
+
+    private boolean operationHasColorLiteral(Operation astNode) {
+        return astNode.lhs instanceof ColorLiteral || astNode.rhs instanceof ColorLiteral;
     }
 
     private boolean isAddOrSubtractOperationWithDistinctLiterals(Operation astNode) {
@@ -90,15 +129,20 @@ public class Checker {
         Set<ExpressionType> expTypesInExp = new HashSet<>();
         getDistinctExpTypes(exp, expTypesInExp);
 
-        expTypesInExp.remove(ExpressionType.SCALAR);
-        expTypesInExp.remove(ExpressionType.UNDEFINED);
+        int countOfNonScalars = 0;
+        if(expTypesInExp.contains(ExpressionType.PIXEL)) countOfNonScalars++;
+        if(expTypesInExp.contains(ExpressionType.COLOR)) countOfNonScalars++;
+        if(expTypesInExp.contains(ExpressionType.PERCENTAGE)) countOfNonScalars++;
 
-        if(expTypesInExp.size() > 1) {
+        if(countOfNonScalars > 1) {
             exp.setError("TypeError, literals in expression dont match.");
             return ExpressionType.UNDEFINED;
+        } else if (countOfNonScalars == 1){
+            expTypesInExp.remove(ExpressionType.SCALAR);
+            return (ExpressionType) expTypesInExp.toArray()[0];
+        } else {
+            return ExpressionType.SCALAR;
         }
-
-        return (ExpressionType) expTypesInExp.toArray()[0];
     }
 
     private void getDistinctExpTypes(Expression expression, Set<ExpressionType> expTypesInExp) {

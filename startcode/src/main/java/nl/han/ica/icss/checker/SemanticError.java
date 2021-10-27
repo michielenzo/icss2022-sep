@@ -6,6 +6,7 @@ public class SemanticError {
 	public SemanticError(String description) {
 		this.description = description;
 	}
+
 	public String toString() {
 		return "ERROR: " + description;
 	}
