@@ -32,9 +32,15 @@ public class Checker {
         checkPropertyDeclaration(astNode);
         checkIfClause(astNode);
 
+        checkScope(astNode);
+
         for (ASTNode childNode: astNode.getChildren()) {
             walkThroughTreeRecursive(childNode);
         }
+    }
+
+    private void checkScope(ASTNode astNode) {
+
     }
 
     private void checkIfClause(ASTNode astNode) {
@@ -105,7 +111,7 @@ public class Checker {
 
             variableAssignment.put(
                     ((VariableAssignment) astNode).name.name,
-                    determineExpType(((VariableAssignment) astNode).expression));
+                    getExpressionType(((VariableAssignment) astNode).expression));
 
             variableTypes.addFirst(variableAssignment);
         }
@@ -121,47 +127,6 @@ public class Checker {
         return false;
     }
 
-    private ExpressionType determineExpType(Expression exp) {
-        Set<ExpressionType> expTypesInExp = new HashSet<>();
-        getDistinctExpTypes(exp, expTypesInExp);
-
-        int countOfNonScalars = 0;
-        if(expTypesInExp.contains(ExpressionType.PIXEL)) countOfNonScalars++;
-        if(expTypesInExp.contains(ExpressionType.COLOR)) countOfNonScalars++;
-        if(expTypesInExp.contains(ExpressionType.PERCENTAGE)) countOfNonScalars++;
-        if(expTypesInExp.contains(ExpressionType.BOOL)) countOfNonScalars++;
-
-        if(countOfNonScalars > 1) {
-            exp.setError("TypeError, literals in expression dont match.");
-            return ExpressionType.UNDEFINED;
-        } else if (countOfNonScalars == 1){
-            expTypesInExp.remove(ExpressionType.SCALAR);
-            return (ExpressionType) expTypesInExp.toArray()[0];
-        } else {
-            return ExpressionType.SCALAR;
-        }
-    }
-
-    private void getDistinctExpTypes(Expression expression, Set<ExpressionType> expTypesInExp) {
-
-        if(expression instanceof Operation){
-            getDistinctExpTypes(((Operation) expression).lhs, expTypesInExp);
-            getDistinctExpTypes(((Operation) expression).rhs, expTypesInExp);
-        } else {
-            if(expression instanceof ScalarLiteral){
-                expTypesInExp.add(ExpressionType.SCALAR);
-            } else if (expression instanceof PixelLiteral) {
-                expTypesInExp.add(ExpressionType.PIXEL);
-            }else if (expression instanceof BoolLiteral) {
-                expTypesInExp.add(ExpressionType.BOOL);
-            }else if (expression instanceof ColorLiteral) {
-                expTypesInExp.add(ExpressionType.COLOR);
-            }else if (expression instanceof PercentageLiteral) {
-                expTypesInExp.add(ExpressionType.PERCENTAGE);
-            }
-        }
-    }
-
     private boolean declarationIsOfTypeBool(VariableReference conditionalExp, HashMap<String, ExpressionType> varType) {
         return varType.get(conditionalExp.name) == ExpressionType.BOOL;
     }
@@ -170,21 +135,66 @@ public class Checker {
         return variableType.containsKey(conditionalExp.name);
     }
 
-    private boolean operationHasColorLiteral(Operation astNode) {
-        return astNode.lhs instanceof ColorLiteral || astNode.rhs instanceof ColorLiteral;
+    private boolean operationHasColorLiteral(Operation operation) {
+        return operation.lhs instanceof ColorLiteral || operation.rhs instanceof ColorLiteral;
     }
 
-    private boolean isAddOrSubtractOperationWithDistinctLiterals(Operation astNode) {
-        return astNode.lhs.getClass() != astNode.rhs.getClass();
+    private boolean isAddOrSubtractOperationWithDistinctLiterals(Operation operation) {
+        return operation.lhs.getClass() != operation.rhs.getClass();
     }
 
-    private boolean isMultiplyOperationWithoutScalars(MultiplyOperation astNode) {
-        return !(astNode.rhs instanceof ScalarLiteral) &&
-                !(astNode.lhs instanceof ScalarLiteral);
+    private boolean isMultiplyOperationWithoutScalars(MultiplyOperation multiplyOperation) {
+        ExpressionType lhsExpType = getExpressionType(multiplyOperation.lhs);
+        ExpressionType rhsExpType = getExpressionType(multiplyOperation.rhs);
+
+        return rhsExpType != ExpressionType.SCALAR &&
+               lhsExpType != ExpressionType.SCALAR;
+    }
+
+    private ExpressionType getExpressionType(Expression exp){
+        if(exp instanceof Operation){
+            ExpressionType lhs = getExpressionType(((Operation) exp).lhs);
+            ExpressionType rhs = getExpressionType(((Operation) exp).rhs);
+
+            if(lhs != ExpressionType.SCALAR && rhs != ExpressionType.SCALAR)
+                exp.setError("TypeError, literals in expression dont match.");
+            else if(lhs != ExpressionType.SCALAR) return lhs;
+            else if(rhs != ExpressionType.SCALAR) return rhs;
+            else return ExpressionType.SCALAR;
+
+        } else if(exp instanceof VariableReference) {
+            return getExpressionTypeForVarAssignment((VariableReference) exp);
+        } else if(exp instanceof ScalarLiteral){
+            return ExpressionType.SCALAR;
+        } else if(exp instanceof PixelLiteral){
+            return ExpressionType.PIXEL;
+        } else if(exp instanceof BoolLiteral){
+            return ExpressionType.BOOL;
+        } else if(exp instanceof PercentageLiteral){
+            return ExpressionType.PERCENTAGE;
+        } else if(exp instanceof ColorLiteral) {
+            return ExpressionType.COLOR;
+        }
+
+        return ExpressionType.UNDEFINED;
+    }
+
+    private ExpressionType getExpressionTypeForVarAssignment(VariableReference reference) {
+        for (int i = 0; i < variableTypes.getSize(); i++) {
+            HashMap<String, ExpressionType> varType = variableTypes.get(i);
+
+            if (varType.containsKey(reference.name)){
+                return varType.get(reference.name);
+            }
+        }
+
+        reference.setError("Variable is not declared.");
+
+        return ExpressionType.UNDEFINED;
     }
 
     private boolean propertyIsWidthAndNotAssignedByPixelLiteral(Declaration astNode) {
-        ExpressionType expressionType = determineExpType(astNode.expression);
+        ExpressionType expressionType = getExpressionType(astNode.expression);
 
         return (Objects.equals(astNode.property.name, "width") ||
                 Objects.equals(astNode.property.name, "height")) &&
