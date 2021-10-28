@@ -1,6 +1,7 @@
 package nl.han.ica.icss.checker;
 
 import nl.han.ica.datastructures.HANLinkedList;
+import nl.han.ica.datastructures.HANStack;
 import nl.han.ica.datastructures.IHANLinkedList;
 import nl.han.ica.icss.ast.*;
 import nl.han.ica.icss.ast.literals.*;
@@ -10,16 +11,17 @@ import nl.han.ica.icss.ast.operations.SubtractOperation;
 import nl.han.ica.icss.ast.types.ExpressionType;
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Objects;
-import java.util.Set;
 
 public class Checker {
 
     private final IHANLinkedList<HashMap<String, ExpressionType>> variableTypes = new HANLinkedList<>();
+    private final Scope scopeTree = new Scope();
+    private final HANStack<Scope> scopeContainer = new HANStack<>();
 
     public void check(AST ast) {
         variableTypes.clear();
+        scopeContainer.push(scopeTree);
         walkThroughTreeRecursive(ast.root);
     }
 
@@ -37,10 +39,48 @@ public class Checker {
         for (ASTNode childNode: astNode.getChildren()) {
             walkThroughTreeRecursive(childNode);
         }
+
+        if(nodeAffectsScope(astNode)){
+            scopeContainer.pop();
+            System.out.println("");
+        }
+
     }
 
     private void checkScope(ASTNode astNode) {
+        if(nodeAffectsScope(astNode)) {
+            Scope scope = new Scope();
+            scope.parent = (Scope) scopeContainer.peek();
+            ((Scope) scopeContainer.peek()).subScopes.add(scope);
+            scopeContainer.push(scope);
+        }
 
+        if(astNode instanceof VariableAssignment) {
+            ((Scope) scopeContainer.peek()).varAssignments.add((VariableAssignment) astNode);
+        }
+
+        if(astNode instanceof VariableReference) {
+            if(findAssignmentInScope(((VariableReference) astNode).name) == null) {
+                astNode.setError("Scope error: variable not defined in current scope.");
+            }
+        }
+    }
+
+    private VariableAssignment findAssignmentInScope(String name) {
+        Scope currentScope = (Scope) scopeContainer.peek();
+
+        while(true) {
+            for (VariableAssignment assignment: currentScope.varAssignments) {
+                if(Objects.equals(assignment.name.name, name)) return assignment;
+            }
+
+            if(currentScope.parent != null) currentScope = currentScope.parent;
+            else return null;
+        }
+    }
+
+    private boolean nodeAffectsScope(ASTNode astNode) {
+        return astNode instanceof Stylerule || astNode instanceof IfClause || astNode instanceof ElseClause;
     }
 
     private void checkIfClause(ASTNode astNode) {

@@ -1,0 +1,13 @@
+Ccc := 5px;
+
+a {
+    Aaa := 10px;
+    width: Aaa;
+    height: Ccc;
+}
+
+b {
+    Bbb := 20px;
+    width: Aaa;
+    height: Ccc;
+}
