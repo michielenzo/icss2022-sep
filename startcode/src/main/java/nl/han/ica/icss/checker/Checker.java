@@ -79,10 +79,6 @@ public class Checker {
         }
     }
 
-    private boolean nodeAffectsScope(ASTNode astNode) {
-        return astNode instanceof Stylerule || astNode instanceof IfClause || astNode instanceof ElseClause;
-    }
-
     private void checkIfClause(ASTNode astNode) {
         if(astNode instanceof IfClause){
             Expression conditionalExp = ((IfClause) astNode).conditionalExpression;
@@ -189,6 +185,10 @@ public class Checker {
 
         return rhsExpType != ExpressionType.SCALAR &&
                lhsExpType != ExpressionType.SCALAR;
+    }
+
+    private boolean nodeAffectsScope(ASTNode astNode) {
+        return astNode instanceof Stylerule || astNode instanceof IfClause || astNode instanceof ElseClause;
     }
 
     private ExpressionType getExpressionType(Expression exp){
