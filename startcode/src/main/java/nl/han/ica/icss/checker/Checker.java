@@ -1,8 +1,6 @@
 package nl.han.ica.icss.checker;
 
-import nl.han.ica.datastructures.HANLinkedList;
 import nl.han.ica.datastructures.HANStack;
-import nl.han.ica.datastructures.IHANLinkedList;
 import nl.han.ica.icss.ast.*;
 import nl.han.ica.icss.ast.literals.*;
 import nl.han.ica.icss.ast.operations.AddOperation;
@@ -15,19 +13,19 @@ import java.util.Objects;
 
 public class Checker {
 
-    private final IHANLinkedList<HashMap<String, ExpressionType>> variableTypes = new HANLinkedList<>();
+    private final VariableManager varManager = new VariableManager();
     private final Scope scopeTree = new Scope();
     private final HANStack<Scope> scopeContainer = new HANStack<>();
 
     public void check(AST ast) {
-        variableTypes.clear();
+        varManager.variableTypes.clear();
         scopeContainer.push(scopeTree);
         walkThroughTreeRecursive(ast.root);
     }
 
     private void walkThroughTreeRecursive(ASTNode astNode){
 
-        determineExpTypeOfVarDeclaration(astNode);
+        varManager.determineExpTypeOfVarAssignment(astNode);
 
         checkVarRefsDeclared(astNode);
         checkOperation(astNode);
@@ -69,14 +67,15 @@ public class Checker {
     private VariableAssignment findAssignmentInScope(String name) {
         Scope currentScope = (Scope) scopeContainer.peek();
 
-        while(true) {
+        while(currentScope != null) {
             for (VariableAssignment assignment: currentScope.varAssignments) {
                 if(Objects.equals(assignment.name.name, name)) return assignment;
             }
 
-            if(currentScope.parent != null) currentScope = currentScope.parent;
-            else return null;
+            currentScope = currentScope.parent;
         }
+
+        return null;
     }
 
     private void checkIfClause(ASTNode astNode) {
@@ -84,8 +83,8 @@ public class Checker {
             Expression conditionalExp = ((IfClause) astNode).conditionalExpression;
 
             if(conditionalExp instanceof VariableReference) {
-                for (int i = 0; i < variableTypes.getSize(); i++) {
-                    HashMap<String, ExpressionType> varType = variableTypes.get(i);
+                for (int i = 0; i < varManager.variableTypes.getSize(); i++) {
+                    HashMap<String, ExpressionType> varType = varManager.variableTypes.get(i);
 
                     if (varTypeMatchesWithConditionalExp((VariableReference) conditionalExp, varType)){
                         if(!declarationIsOfTypeBool((VariableReference) conditionalExp, varType)){
@@ -141,21 +140,9 @@ public class Checker {
         }
     }
 
-    private void determineExpTypeOfVarDeclaration(ASTNode astNode){
-        if (astNode instanceof VariableAssignment) {
-            HashMap<String, ExpressionType> variableAssignment = new HashMap<>();
-
-            variableAssignment.put(
-                    ((VariableAssignment) astNode).name.name,
-                    getExpressionType(((VariableAssignment) astNode).expression));
-
-            variableTypes.addFirst(variableAssignment);
-        }
-    }
-
     private boolean isVarRefDeclared(ASTNode astNode) {
-        for (int i = 0; i < variableTypes.getSize(); i++) {
-            if(variableTypes.get(i).get(((VariableReference) astNode).name) != null){
+        for (int i = 0; i < varManager.variableTypes.getSize(); i++) {
+            if(varManager.variableTypes.get(i).get(((VariableReference) astNode).name) != null){
                 return true;
             }
         }
@@ -176,12 +163,14 @@ public class Checker {
     }
 
     private boolean isAddOrSubtractOperationWithDistinctLiterals(Operation operation) {
-        return operation.lhs.getClass() != operation.rhs.getClass();
+        ExpressionType lhsExpType = varManager.getExpressionType(operation.lhs);
+        ExpressionType rhsExpType = varManager.getExpressionType(operation.rhs);
+        return lhsExpType != rhsExpType;
     }
 
     private boolean isMultiplyOperationWithoutScalars(MultiplyOperation multiplyOperation) {
-        ExpressionType lhsExpType = getExpressionType(multiplyOperation.lhs);
-        ExpressionType rhsExpType = getExpressionType(multiplyOperation.rhs);
+        ExpressionType lhsExpType = varManager.getExpressionType(multiplyOperation.lhs);
+        ExpressionType rhsExpType = varManager.getExpressionType(multiplyOperation.rhs);
 
         return rhsExpType != ExpressionType.SCALAR &&
                lhsExpType != ExpressionType.SCALAR;
@@ -191,50 +180,8 @@ public class Checker {
         return astNode instanceof Stylerule || astNode instanceof IfClause || astNode instanceof ElseClause;
     }
 
-    private ExpressionType getExpressionType(Expression exp){
-        if(exp instanceof Operation){
-            ExpressionType lhs = getExpressionType(((Operation) exp).lhs);
-            ExpressionType rhs = getExpressionType(((Operation) exp).rhs);
-
-            if(lhs != ExpressionType.SCALAR && rhs != ExpressionType.SCALAR)
-                exp.setError("TypeError, literals in expression dont match.");
-            else if(lhs != ExpressionType.SCALAR) return lhs;
-            else if(rhs != ExpressionType.SCALAR) return rhs;
-            else return ExpressionType.SCALAR;
-
-        } else if(exp instanceof VariableReference) {
-            return getExpressionTypeForVarAssignment((VariableReference) exp);
-        } else if(exp instanceof ScalarLiteral){
-            return ExpressionType.SCALAR;
-        } else if(exp instanceof PixelLiteral){
-            return ExpressionType.PIXEL;
-        } else if(exp instanceof BoolLiteral){
-            return ExpressionType.BOOL;
-        } else if(exp instanceof PercentageLiteral){
-            return ExpressionType.PERCENTAGE;
-        } else if(exp instanceof ColorLiteral) {
-            return ExpressionType.COLOR;
-        }
-
-        return ExpressionType.UNDEFINED;
-    }
-
-    private ExpressionType getExpressionTypeForVarAssignment(VariableReference reference) {
-        for (int i = 0; i < variableTypes.getSize(); i++) {
-            HashMap<String, ExpressionType> varType = variableTypes.get(i);
-
-            if (varType.containsKey(reference.name)){
-                return varType.get(reference.name);
-            }
-        }
-
-        reference.setError("Variable is not declared.");
-
-        return ExpressionType.UNDEFINED;
-    }
-
     private boolean propertyIsWidthAndNotAssignedByPixelLiteral(Declaration astNode) {
-        ExpressionType expressionType = getExpressionType(astNode.expression);
+        ExpressionType expressionType = varManager.getExpressionType(astNode.expression);
 
         return (Objects.equals(astNode.property.name, "width") ||
                 Objects.equals(astNode.property.name, "height")) &&

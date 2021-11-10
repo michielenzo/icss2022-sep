@@ -5,7 +5,6 @@ import java.util.Objects;
 
 public class IfClause extends ASTNode {
 
-
     public Expression conditionalExpression;
     public ArrayList<ASTNode> body = new ArrayList<>();
     public ElseClause elseClause;
@@ -13,12 +12,11 @@ public class IfClause extends ASTNode {
     public IfClause() { }
 
     public IfClause(Expression conditionalExpression, ArrayList<ASTNode> body) {
-
         this.conditionalExpression = conditionalExpression;
         this.body = body;
     }
-    public IfClause(Expression conditionalExpression, ArrayList<ASTNode> body, ElseClause elseClause) {
 
+    public IfClause(Expression conditionalExpression, ArrayList<ASTNode> body, ElseClause elseClause) {
         this.conditionalExpression = conditionalExpression;
         this.body = body;
         this.elseClause = elseClause;
@@ -28,6 +26,7 @@ public class IfClause extends ASTNode {
     public String getNodeLabel() {
         return "If_Clause";
     }
+
     @Override
     public ArrayList<ASTNode> getChildren() {
         ArrayList<ASTNode> children = new ArrayList<>();
@@ -50,6 +49,7 @@ public class IfClause extends ASTNode {
 
         return this;
     }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -63,7 +63,6 @@ public class IfClause extends ASTNode {
             return Objects.equals(conditionalExpression, ifClause.getConditionalExpression()) &&
                     Objects.equals(body, ifClause.body) &&
                     Objects.equals(elseClause, ifClause.elseClause);
-
     }
 
     @Override
@@ -74,5 +73,6 @@ public class IfClause extends ASTNode {
     public Expression getConditionalExpression() {
         return conditionalExpression;
     }
+
     public ElseClause getElseClause() { return elseClause; }
 }

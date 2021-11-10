@@ -1,0 +1,16 @@
+AdjustWidth := TRUE;
+WidthVar := 0px;
+Aaa := 20;
+
+p {
+	if [AdjustWidth] {
+		WidthVar := 200px;
+	} else {
+		WidthVar := 250px;
+	}
+
+    Bbb := 15 + Aaa * 3 + 4 * 20px;
+
+	width: WidthVar;
+}
+

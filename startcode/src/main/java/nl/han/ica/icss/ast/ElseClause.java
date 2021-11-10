@@ -18,6 +18,7 @@ public class ElseClause extends ASTNode{
     public String getNodeLabel() {
         return "Else_Clause";
     }
+
     @Override
     public ArrayList<ASTNode> getChildren() {
         ArrayList<ASTNode> children = new ArrayList<>();
@@ -33,6 +34,7 @@ public class ElseClause extends ASTNode{
 
         return this;
     }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
