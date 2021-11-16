@@ -23,4 +23,6 @@ public class HANStack<T> implements IHANStack{
     public Object peek() {
         return list.get(list.size() - 1);
     }
+
+    public Object peek(int level) { return list.get(list.size() - level); }
 }

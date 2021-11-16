@@ -24,6 +24,7 @@ public class ASTNode {
     public ArrayList<ASTNode> getChildren() {
         return new ArrayList<>();
     }
+
     /*
     By implementing this method in a subclass you can easily create AST nodes
       incrementally.
@@ -31,10 +32,12 @@ public class ASTNode {
     public ASTNode addChild(ASTNode child) {
             return this;
     }
+
     /*
     * By implementing this method you can easily make transformations that prune the AST.
     */
     public ASTNode removeChild(ASTNode child) {
+
         return this;
     }
 
@@ -56,6 +59,7 @@ public class ASTNode {
 		toString(result);
 		return result.toString();
 	}
+
 	private void toString(StringBuilder builder) {
 		builder.append("[");
 		builder.append(getNodeLabel());	
