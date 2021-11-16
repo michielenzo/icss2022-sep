@@ -22,6 +22,7 @@ public class Evaluator implements Transform {
     @Override
     public void apply(AST ast) {
         walkThroughTreeRecursive(ast.root);
+        System.out.println();
     }
 
     private void walkThroughTreeRecursive(ASTNode astNode) {
@@ -34,7 +35,9 @@ public class Evaluator implements Transform {
 
         if(astNode instanceof IfClause) evaluateIfClause((IfClause) astNode);
 
+        System.out.println();
         if(astNode instanceof Expression) evaluateExpression((Expression) astNode);
+        System.out.println();
 
         if(astNode.getChildren().size() != 0) container.push(astNode);
 
@@ -46,6 +49,7 @@ public class Evaluator implements Transform {
     }
 
     private void evaluateExpression(Expression exp) {
+
         if(exp instanceof AddOperation || exp instanceof SubtractOperation)
         {
             if(((Operation) exp).lhs instanceof MultiplyOperation){
@@ -56,13 +60,35 @@ public class Evaluator implements Transform {
 
             } else {
                 int result = calculateAddOrSubtractOpp((Operation) exp);
-                replaceAddOrSubtractOpp(exp);
+                replaceAddOrSubtractOpp(exp, result);
             }
         }
+
+        System.out.println("");
     }
 
-    private void replaceAddOrSubtractOpp(Expression exp) {
+    private void replaceAddOrSubtractOpp(Expression exp, int result) {
+        ScalarLiteral scalarLiteral = new ScalarLiteral(result);
 
+        Expression expLhs = exp instanceof AddOperation
+                ? ((AddOperation) exp).lhs
+                : ((SubtractOperation) exp).lhs;
+
+        if(expLhs instanceof Literal){
+            ASTNode expParent = (ASTNode) container.peek();
+            expParent.removeChild(exp);
+            expParent.addChild(scalarLiteral);
+        } else if (expLhs instanceof AddOperation) {
+            ASTNode expParent = (ASTNode) container.peek();
+            ((AddOperation) expLhs).lhs = scalarLiteral;
+            expParent.removeChild(exp);
+            expParent.addChild(expLhs);
+        } else if (expLhs instanceof SubtractOperation) {
+            ASTNode expParent = (ASTNode) container.peek();
+            ((SubtractOperation) expLhs).rhs = scalarLiteral;
+            expParent.removeChild(exp);
+            expParent.addChild(expLhs);
+        }
     }
 
     private int calculateAddOrSubtractOpp(Operation opp) {
@@ -88,36 +114,38 @@ public class Evaluator implements Transform {
         return opp instanceof AddOperation ? lhs + rhs : lhs - rhs;
     }
 
-    private void replaceMultiplyOpp(Operation exp, MultiplyOperation multiplyOpp, int multiplication) {
+    private void replaceMultiplyOpp(Operation mainExp, MultiplyOperation multiplyOpp, int multiplication)
+    {
+        ExpressionType expType = varManager.getExpressionType(mainExp);
+
         if(multiplyOpp.lhs instanceof Literal){
-            ExpressionType multiplyOppExpType = varManager.getExpressionType(multiplyOpp);
             Literal literal;
 
-            if(multiplyOppExpType == ExpressionType.SCALAR) {
+            if(expType == ExpressionType.SCALAR) {
                 literal = new ScalarLiteral(multiplication);
-            } else if(multiplyOppExpType == ExpressionType.PIXEL){
+            } else if(expType == ExpressionType.PIXEL){
                 literal = new PixelLiteral(multiplication);
-            } else if(multiplyOppExpType == ExpressionType.PERCENTAGE){
+            } else if(expType == ExpressionType.PERCENTAGE){
                 literal = new PercentageLiteral(multiplication);
             } else{
                 literal = new ScalarLiteral(multiplication);
             }
 
-            exp.lhs = literal;
+            mainExp.lhs = literal;
         }
 
         if(multiplyOpp.lhs instanceof AddOperation){
            AddOperation newAddOpp = new AddOperation();
            newAddOpp.lhs = ((AddOperation) multiplyOpp.lhs).lhs;
            newAddOpp.rhs = new ScalarLiteral(multiplication);
-           exp.lhs = newAddOpp;
+           mainExp.lhs = newAddOpp;
         }
 
         if(multiplyOpp.lhs instanceof SubtractOperation){
             SubtractOperation newSubtractOpp = new SubtractOperation();
             newSubtractOpp.lhs = ((SubtractOperation) multiplyOpp.lhs).lhs;
             newSubtractOpp.rhs = new ScalarLiteral(multiplication);
-            exp.lhs = newSubtractOpp;
+            mainExp.lhs = newSubtractOpp;
         }
     }
 

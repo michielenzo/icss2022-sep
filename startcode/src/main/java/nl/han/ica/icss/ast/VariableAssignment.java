@@ -29,6 +29,13 @@ public class VariableAssignment extends ASTNode {
 	}
 
 	@Override
+	public ASTNode removeChild(ASTNode child) {
+		Expression temp = expression;
+		expression = null;
+		return temp;
+	}
+
+	@Override
 	public ArrayList<ASTNode> getChildren() {
 
 		ArrayList<ASTNode> children = new ArrayList<>();
