@@ -1,7 +1,5 @@
 package nl.han.ica.icss.parser;
 
-import java.util.List;
-
 import nl.han.ica.datastructures.HANStack;
 import nl.han.ica.datastructures.IHANStack;
 import nl.han.ica.icss.ast.*;
@@ -16,14 +14,12 @@ import nl.han.ica.icss.gen.ICSSBaseListener;
 import nl.han.ica.icss.gen.ICSSParser;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.tree.ErrorNode;
-import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
 /**
  * This class extracts the ICSS Abstract Syntax Tree from the Antlr Parse tree.
  */
 public class ASTListener extends ICSSBaseListener {
-
 
 	//Accumulator attributes:
 	private AST ast;

@@ -20,10 +20,10 @@ public class Checker {
     public void check(AST ast) {
         varManager.variableTypes.clear();
         scopeContainer.push(scopeTree);
-        walkThroughTreeRecursive(ast.root);
+        walkThroughASTRecursive(ast.root);
     }
 
-    private void walkThroughTreeRecursive(ASTNode astNode){
+    private void walkThroughASTRecursive(ASTNode astNode){
 
         varManager.determineExpTypeOfVarAssignment(astNode);
 
@@ -35,12 +35,11 @@ public class Checker {
         checkScope(astNode);
 
         for (ASTNode childNode: astNode.getChildren()) {
-            walkThroughTreeRecursive(childNode);
+            walkThroughASTRecursive(childNode);
         }
 
         if(nodeAffectsScope(astNode)){
             scopeContainer.pop();
-            System.out.println("");
         }
 
     }

@@ -9,7 +9,6 @@ import nl.han.ica.icss.ast.literals.ScalarLiteral;
 import nl.han.ica.icss.ast.operations.AddOperation;
 import nl.han.ica.icss.ast.operations.MultiplyOperation;
 import nl.han.ica.icss.ast.operations.SubtractOperation;
-import nl.han.ica.icss.ast.types.ExpressionType;
 import nl.han.ica.icss.checker.VariableManager;
 
 import java.util.ArrayList;
@@ -18,7 +17,6 @@ public class Evaluator implements Transform {
 
     private final VariableManager varManager = new VariableManager();
     private final HANStack<ASTNode> container = new HANStack<>();
-    private final HANStack<ASTNode> expContainer = new HANStack<>();
 
     private AST ast = null;
 
@@ -40,7 +38,7 @@ public class Evaluator implements Transform {
         if(astNode instanceof IfClause) evaluateIfClause((IfClause) astNode);
 
         if(astNode instanceof Expression && !(astNode instanceof VariableReference)) {
-            evaluateExpression2((Expression) astNode);
+            evaluateExpression((Expression) astNode);
         }
 
         if(astNode.getChildren().size() != 0) container.push(astNode);
@@ -52,16 +50,17 @@ public class Evaluator implements Transform {
         if(astNode.getChildren().size() != 0) container.pop();
     }
 
-    private void evaluateExpression2(Expression exp) {
+    private void evaluateExpression(Expression exp) {
 
         container.push(exp);
 
         for(ASTNode child: exp.getChildren()){
-            evaluateExpression2((Expression) child);
+            evaluateExpression((Expression) child);
         }
 
         container.pop();
 
+        if(exp instanceof Operation && isExpressionDoneCalculating(exp)) return;
 
         if(exp instanceof AddOperation || exp instanceof SubtractOperation){
             ASTNode parent = (ASTNode) container.peek();
@@ -70,17 +69,52 @@ public class Evaluator implements Transform {
                 ASTNode grandParent = (ASTNode) container.peek(2);
 
                 int multiplication = calculateMultiplyOpp((MultiplyOperation) parent);
-                replaceMultiplyOpp2((Operation) grandParent, (MultiplyOperation) parent, multiplication);
-                int result = calculateAddOrSubtractOpp((Operation) exp);
-                ((Operation) grandParent).lhs = new ScalarLiteral(result);
-            } else {
-                parent.removeChild(exp);
+
+                replaceMultiplyOpp(grandParent, (MultiplyOperation) parent, multiplication);
 
                 int result = calculateAddOrSubtractOpp((Operation) exp);
-                ScalarLiteral newScalar = new ScalarLiteral(result);
-                parent.addChild(newScalar);
+
+                if(grandParent instanceof Operation){
+                    ((Operation) grandParent).lhs = constructLiteral((Expression) parent, result);
+                } else {
+                    grandParent.removeChild(parent);
+                    grandParent.addChild(constructLiteral((Expression) parent, result));
+                }
+
+            } else {
+                int result = calculateAddOrSubtractOpp((Operation) exp);
+
+                parent.removeChild(exp);
+                parent.addChild(constructLiteral(exp, result));
             }
+        } else if(exp instanceof MultiplyOperation){
+            ASTNode parent = (ASTNode) container.peek();
+
+            int multiplication = calculateMultiplyOpp((MultiplyOperation) exp);
+
+            Literal newLiteral = constructLiteral(exp, multiplication);
+            parent.removeChild(exp);
+            parent.addChild(newLiteral);
         }
+    }
+
+    private boolean isExpressionDoneCalculating(Expression exp){
+
+        ASTNode current = exp;
+        int indexCount = 0;
+
+        while (current instanceof Operation){
+            if(indexCount != 0) current = (ASTNode) container.peek(indexCount);
+            else                current = (ASTNode) container.peek();
+
+            indexCount++;
+        }
+
+        ArrayList<ASTNode> children = current.getChildren();
+
+        for (ASTNode child: children) if(child instanceof Operation) return false;
+
+        return true;
     }
 
     private int calculateAddOrSubtractOpp(Operation opp) {
@@ -106,16 +140,19 @@ public class Evaluator implements Transform {
         return opp instanceof AddOperation ? lhs + rhs : lhs - rhs;
     }
 
-    private void replaceMultiplyOpp2(Operation mainExp, MultiplyOperation multiplyOpp, int multiplication) {
-        ScalarLiteral scalarLiteral = new ScalarLiteral(multiplication);
-
+    private void replaceMultiplyOpp(ASTNode grandParent, MultiplyOperation multiplyOpp, int multiplication) {
         final Expression lhs = multiplyOpp.lhs;
 
         if(lhs instanceof Operation){
-            ((Operation) lhs).rhs = scalarLiteral;
+            ((Operation) lhs).rhs = constructLiteral(multiplyOpp, multiplication);
         }
 
-        mainExp.lhs = lhs;
+        if(grandParent instanceof Operation){
+            ((Operation) grandParent).lhs = lhs;
+        } else {
+            grandParent.removeChild(multiplyOpp);
+            grandParent.addChild(multiplyOpp.lhs);
+        }
     }
 
     private int calculateMultiplyOpp(MultiplyOperation exp){
@@ -137,6 +174,14 @@ public class Evaluator implements Transform {
         }
 
         return 0;
+    }
+
+    private Literal constructLiteral(Expression exp, int value){
+        switch(varManager.getExpressionType(exp)){
+            case PIXEL: return new PixelLiteral(value);
+            case PERCENTAGE: return new PercentageLiteral(value);
+            default: return new ScalarLiteral(value);
+        }
     }
 
     public Integer getValueOfLiteral(Literal exp) {
