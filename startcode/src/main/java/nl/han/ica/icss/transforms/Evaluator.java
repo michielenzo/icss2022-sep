@@ -39,6 +39,10 @@ public class Evaluator implements Transform {
 
         if(astNode instanceof Expression && !(astNode instanceof VariableReference)) {
             evaluateExpression((Expression) astNode);
+
+            if (container.peek() instanceof VariableAssignment) {
+                varManager.setVariableAssignmentValues((VariableAssignment) container.peek());
+            }
         }
 
         if(astNode.getChildren().size() != 0) container.push(astNode);
@@ -64,13 +68,7 @@ public class Evaluator implements Transform {
         // calculations. This checks if the remaining recursion should stop.
         if(exp instanceof Operation && ExpressionIsResolved(exp)) return;
 
-        if(exp instanceof VariableReference) {
-            Literal referencedValue = varManager.getValueOfVarReference((VariableReference) exp);
-            Literal newLiteral = constructLiteral(exp, getValueOfLiteral(referencedValue));
-            ASTNode parent = (ASTNode) container.peek();
-            parent.removeChild(exp);
-            parent.addChild(newLiteral);
-        }
+        if(exp instanceof VariableReference) replaceReferenceWithLiteral(exp);
 
         if(exp instanceof AddOperation || exp instanceof SubtractOperation){
             ASTNode parent = (ASTNode) container.peek();
@@ -106,6 +104,14 @@ public class Evaluator implements Transform {
             parent.removeChild(exp);
             parent.addChild(newLiteral);
         }
+    }
+
+    private void replaceReferenceWithLiteral(Expression exp) {
+        Literal referencedValue = varManager.getValueOfVarReference((VariableReference) exp);
+        Literal newLiteral = constructLiteral(exp, getValueOfLiteral(referencedValue));
+        ASTNode parent = (ASTNode) container.peek();
+        parent.removeChild(exp);
+        parent.addChild(newLiteral);
     }
 
     private boolean ExpressionIsResolved(Expression exp){
