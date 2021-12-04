@@ -9,18 +9,18 @@ import java.util.Objects;
  */
 public class VariableAssignment extends ASTNode {
 	
-	public VariableReference name;
+	public VariableReference variableReference;
 	public Expression expression;
 
 	@Override
 	public String getNodeLabel() {
-		return "VariableAssignment (" + name.name + ")";
+		return "VariableAssignment (" + variableReference.name + ")";
 	}
 
 	@Override
 	public ASTNode addChild(ASTNode child) {
-		if(name == null) {
-			name = (VariableReference) child;
+		if(variableReference == null) {
+			variableReference = (VariableReference) child;
 		} else if(expression == null) {
 			expression = (Expression) child;
 		}
@@ -39,8 +39,8 @@ public class VariableAssignment extends ASTNode {
 	public ArrayList<ASTNode> getChildren() {
 
 		ArrayList<ASTNode> children = new ArrayList<>();
-		if(name != null)
-			children.add(name);
+		if(variableReference != null)
+			children.add(variableReference);
 		if(expression != null)
 			children.add(expression);
 		return children;
@@ -52,12 +52,12 @@ public class VariableAssignment extends ASTNode {
 		if (o == null || getClass() != o.getClass()) return false;
 		if (!super.equals(o)) return false;
 		VariableAssignment that = (VariableAssignment) o;
-		return Objects.equals(name, that.name) &&
+		return Objects.equals(variableReference, that.variableReference) &&
 				Objects.equals(expression, that.expression);
 	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(name, expression);
+		return Objects.hash(variableReference, expression);
 	}
 }

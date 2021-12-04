@@ -19,7 +19,7 @@ public class VariableManager {
             HashMap<String, ExpressionType> variableAssignment = new HashMap<>();
 
             variableAssignment.put(
-                    ((VariableAssignment) astNode).name.name,
+                    ((VariableAssignment) astNode).variableReference.name,
                     getExpressionType(((VariableAssignment) astNode).expression));
 
             variableTypes.addFirst(variableAssignment);
@@ -31,9 +31,7 @@ public class VariableManager {
             ExpressionType lhs = getExpressionType(((Operation) exp).lhs);
             ExpressionType rhs = getExpressionType(((Operation) exp).rhs);
 
-            if(lhs != ExpressionType.SCALAR && rhs != ExpressionType.SCALAR)
-                exp.setError("TypeError, literals in expression dont match.");
-            else if(lhs != ExpressionType.SCALAR) return lhs;
+            if(lhs != ExpressionType.SCALAR) return lhs;
             else if(rhs != ExpressionType.SCALAR) return rhs;
             else return ExpressionType.SCALAR;
 
@@ -55,9 +53,9 @@ public class VariableManager {
     }
 
     public void setVariableAssignmentValues(VariableAssignment varAssignment){
-        if(varAssignment.expression instanceof BoolLiteral){
+        if(varAssignment.expression instanceof Literal){
             HashMap<String, Literal> mapping = new HashMap<>();
-            mapping.put(varAssignment.name.name, ((Literal) varAssignment.expression));
+            mapping.put(varAssignment.variableReference.name, ((Literal) varAssignment.expression));
             variableValues.addFirst(mapping);
         }
     }

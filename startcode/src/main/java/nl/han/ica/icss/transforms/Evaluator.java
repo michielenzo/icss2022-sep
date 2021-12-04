@@ -60,7 +60,17 @@ public class Evaluator implements Transform {
 
         container.pop();
 
-        if(exp instanceof Operation && isExpressionDoneCalculating(exp)) return;
+        // When the expression is resolved sometimes the recursion is not done yet. This will lead to incorrect
+        // calculations. This checks if the remaining recursion should stop.
+        if(exp instanceof Operation && ExpressionIsResolved(exp)) return;
+
+        if(exp instanceof VariableReference) {
+            Literal referencedValue = varManager.getValueOfVarReference((VariableReference) exp);
+            Literal newLiteral = constructLiteral(exp, getValueOfLiteral(referencedValue));
+            ASTNode parent = (ASTNode) container.peek();
+            parent.removeChild(exp);
+            parent.addChild(newLiteral);
+        }
 
         if(exp instanceof AddOperation || exp instanceof SubtractOperation){
             ASTNode parent = (ASTNode) container.peek();
@@ -98,7 +108,7 @@ public class Evaluator implements Transform {
         }
     }
 
-    private boolean isExpressionDoneCalculating(Expression exp){
+    private boolean ExpressionIsResolved(Expression exp){
 
         ASTNode current = exp;
         int indexCount = 0;
@@ -112,7 +122,7 @@ public class Evaluator implements Transform {
 
         ArrayList<ASTNode> children = current.getChildren();
 
-        for (ASTNode child: children) if(child instanceof Operation) return false;
+        for (ASTNode child: children) if (child instanceof Operation) return false;
 
         return true;
     }
@@ -184,13 +194,13 @@ public class Evaluator implements Transform {
         }
     }
 
-    public Integer getValueOfLiteral(Literal exp) {
-        if(exp instanceof ScalarLiteral){
-            return ((ScalarLiteral) exp).value;
-        } else if(exp instanceof PixelLiteral){
-            return ((PixelLiteral) exp).value;
-        } else if(exp instanceof PercentageLiteral){
-            return ((PercentageLiteral) exp).value;
+    public Integer getValueOfLiteral(Literal literal) {
+        if(literal instanceof ScalarLiteral){
+            return ((ScalarLiteral) literal).value;
+        } else if(literal instanceof PixelLiteral){
+            return ((PixelLiteral) literal).value;
+        } else if(literal instanceof PercentageLiteral){
+            return ((PercentageLiteral) literal).value;
         }
 
         return null;

@@ -68,7 +68,7 @@ public class Checker {
 
         while(currentScope != null) {
             for (VariableAssignment assignment: currentScope.varAssignments) {
-                if(Objects.equals(assignment.name.name, name)) return assignment;
+                if(Objects.equals(assignment.variableReference.name, name)) return assignment;
             }
 
             currentScope = currentScope.parent;
