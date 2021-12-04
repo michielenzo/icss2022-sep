@@ -187,9 +187,11 @@ public class Checker {
                 expressionType != ExpressionType.PIXEL;
     }
 
-    private boolean propertyIsAColorAndNotAssignedByColorLiteral(Declaration astNode) {
-        return (Objects.equals(astNode.property.name, "color") ||
-                Objects.equals(astNode.property.name, "background-color")) &&
-                !(astNode.expression instanceof ColorLiteral);
+    private boolean propertyIsAColorAndNotAssignedByColorLiteral(Declaration declaration) {
+        ExpressionType expressionType = varManager.getExpressionType(declaration.expression);
+
+        return (Objects.equals(declaration.property.name, "color") ||
+                Objects.equals(declaration.property.name, "background-color")) &&
+                expressionType != ExpressionType.COLOR;
     }
 }
