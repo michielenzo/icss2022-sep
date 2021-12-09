@@ -38,9 +38,7 @@ public class Checker {
             walkThroughASTRecursive(childNode);
         }
 
-        if(nodeAffectsScope(astNode)){
-            scopeContainer.pop();
-        }
+        if(nodeAffectsScope(astNode)) scopeContainer.pop();
 
     }
 

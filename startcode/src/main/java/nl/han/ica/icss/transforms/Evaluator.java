@@ -35,8 +35,6 @@ public class Evaluator implements Transform {
             varManager.setVariableAssignmentValues((VariableAssignment) astNode);
         }
 
-        if(astNode instanceof IfClause) evaluateIfClause((IfClause) astNode);
-
         if(astNode instanceof Expression && !(astNode instanceof VariableReference)) {
             evaluateExpression((Expression) astNode);
 
@@ -52,6 +50,21 @@ public class Evaluator implements Transform {
         }
 
         if(astNode.getChildren().size() != 0) container.pop();
+
+        if(astNode instanceof IfClause) evaluateIfClause((IfClause) astNode);
+    }
+
+    private void evaluateIfClause(IfClause ifClause) {
+        ASTNode parent = (ASTNode) container.peek();
+
+        if(conditionIsTrue(ifClause.conditionalExpression)){
+            parent.removeChild(ifClause);
+            adoptChildren(ifClause, parent, ifClause.conditionalExpression);
+            parent.removeChild(ifClause.elseClause);
+        } else if (ifClause.elseClause != null){
+            parent.removeChild(ifClause);
+            adoptChildren(ifClause.elseClause, parent);
+        }
     }
 
     private void evaluateExpression(Expression exp) {
@@ -210,19 +223,6 @@ public class Evaluator implements Transform {
         }
 
         return null;
-    }
-
-    private void evaluateIfClause(IfClause ifClause){
-        ASTNode parent = (ASTNode) container.peek();
-
-        if(conditionIsTrue(ifClause.conditionalExpression)){
-            parent.removeChild(ifClause);
-            adoptChildren(ifClause, parent, ifClause.conditionalExpression);
-            parent.removeChild(ifClause.elseClause);
-        } else {
-            parent.removeChild(ifClause);
-            adoptChildren(ifClause.elseClause, parent);
-        }
     }
 
     private void adoptChildren(ASTNode bioParent, ASTNode adopter, ASTNode exceptFor) {

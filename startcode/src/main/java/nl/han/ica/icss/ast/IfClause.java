@@ -70,6 +70,14 @@ public class IfClause extends ASTNode {
         return Objects.hash(conditionalExpression, body, elseClause);
     }
 
+    @Override
+    public ASTNode removeChild(ASTNode child) {
+        body.remove(child);
+        if(conditionalExpression.equals(child)) conditionalExpression = null;
+        if(elseClause != null) if(elseClause.equals(child)) elseClause = null;
+        return this;
+    }
+
     public Expression getConditionalExpression() {
         return conditionalExpression;
     }

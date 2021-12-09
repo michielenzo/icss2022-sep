@@ -10,7 +10,6 @@ public class ElseClause extends ASTNode{
     public ElseClause() { }
 
     public ElseClause(ArrayList<ASTNode> body) {
-
         this.body = body;
     }
 
@@ -23,15 +22,18 @@ public class ElseClause extends ASTNode{
     public ArrayList<ASTNode> getChildren() {
         ArrayList<ASTNode> children = new ArrayList<>();
         children.addAll(body);
-
         return children;
     }
 
     @Override
     public ASTNode addChild(ASTNode child) {
-
         body.add(child);
+        return this;
+    }
 
+    @Override
+    public ASTNode removeChild(ASTNode child) {
+        body.remove(child);
         return this;
     }
 
@@ -48,7 +50,4 @@ public class ElseClause extends ASTNode{
     public int hashCode() {
         return Objects.hash(body);
     }
-
-
-
 }
