@@ -2,13 +2,11 @@ package nl.han.ica.icss.transforms;
 
 import nl.han.ica.datastructures.HANStack;
 import nl.han.ica.icss.ast.*;
-import nl.han.ica.icss.ast.literals.BoolLiteral;
-import nl.han.ica.icss.ast.literals.PercentageLiteral;
-import nl.han.ica.icss.ast.literals.PixelLiteral;
-import nl.han.ica.icss.ast.literals.ScalarLiteral;
+import nl.han.ica.icss.ast.literals.*;
 import nl.han.ica.icss.ast.operations.AddOperation;
 import nl.han.ica.icss.ast.operations.MultiplyOperation;
 import nl.han.ica.icss.ast.operations.SubtractOperation;
+import nl.han.ica.icss.ast.types.ExpressionType;
 import nl.han.ica.icss.checker.VariableManager;
 
 import java.util.ArrayList;
@@ -23,11 +21,11 @@ public class Evaluator implements Transform {
     @Override
     public void apply(AST ast) {
         this.ast = ast;
-        walkThroughASTRecursive(ast.root);
+        walkASTRecursive(ast.root);
         System.out.println();
     }
 
-    private void walkThroughASTRecursive(ASTNode astNode) {
+    private void walkASTRecursive(ASTNode astNode) {
 
         varManager.determineExpTypeOfVarAssignment(astNode);
 
@@ -43,10 +41,18 @@ public class Evaluator implements Transform {
             }
         }
 
+        if(astNode instanceof VariableReference &&
+           !(container.peek() instanceof IfClause) &&
+           !(container.peek() instanceof VariableAssignment))
+        {
+            ASTNode parent = (ASTNode) container.peek();
+            replaceReferenceWithLiteral((Expression) astNode);
+        }
+
         if(astNode.getChildren().size() != 0) container.push(astNode);
 
         for (ASTNode childNode: astNode.getChildren()) {
-            if(!(astNode instanceof Expression)) walkThroughASTRecursive(childNode);
+            if(!(astNode instanceof Expression)) walkASTRecursive(childNode);
         }
 
         if(astNode.getChildren().size() != 0) container.pop();
@@ -121,10 +127,31 @@ public class Evaluator implements Transform {
 
     private void replaceReferenceWithLiteral(Expression exp) {
         Literal referencedValue = varManager.getValueOfVarReference((VariableReference) exp);
-        Literal newLiteral = constructLiteral(exp, getValueOfLiteral(referencedValue));
+
+        Literal newLiteral;
+
+        if(referencedValue instanceof ColorLiteral){
+            newLiteral = new ColorLiteral(((ColorLiteral) referencedValue).value);
+        } else {
+            newLiteral = constructLiteral(exp, getValueOfLiteral(referencedValue));
+        }
+
         ASTNode parent = (ASTNode) container.peek();
         parent.removeChild(exp);
         parent.addChild(newLiteral);
+        System.out.println("");
+    }
+
+    public Integer getValueOfLiteral(Literal literal) {
+        if(literal instanceof ScalarLiteral){
+            return ((ScalarLiteral) literal).value;
+        } else if(literal instanceof PixelLiteral){
+            return ((PixelLiteral) literal).value;
+        } else if(literal instanceof PercentageLiteral){
+            return ((PercentageLiteral) literal).value;
+        }
+
+        return null;
     }
 
     private boolean ExpressionIsResolved(Expression exp){
@@ -213,18 +240,6 @@ public class Evaluator implements Transform {
         }
     }
 
-    public Integer getValueOfLiteral(Literal literal) {
-        if(literal instanceof ScalarLiteral){
-            return ((ScalarLiteral) literal).value;
-        } else if(literal instanceof PixelLiteral){
-            return ((PixelLiteral) literal).value;
-        } else if(literal instanceof PercentageLiteral){
-            return ((PercentageLiteral) literal).value;
-        }
-
-        return null;
-    }
-
     private void adoptChildren(ASTNode bioParent, ASTNode adopter, ASTNode exceptFor) {
         ArrayList<ASTNode> children = bioParent.getChildren();
         for (ASTNode child : children) {
@@ -235,9 +250,7 @@ public class Evaluator implements Transform {
 
     private void adoptChildren(ASTNode bioParent, ASTNode adopter) {
         ArrayList<ASTNode> children = bioParent.getChildren();
-        for (ASTNode child : children) {
-            adopter.addChild(child);
-        }
+        for (ASTNode child : children) adopter.addChild(child);
     }
 
     private boolean conditionIsTrue(Expression exp) {

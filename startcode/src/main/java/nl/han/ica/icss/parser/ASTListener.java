@@ -69,22 +69,19 @@ public class ASTListener extends ICSSBaseListener {
 	@Override public void enterSelector(ICSSParser.SelectorContext ctx) {
 
 		char symbol = ctx.getChild(0).getText().charAt(0);
-
+        String tagName = ctx.getChild(0).getText().substring(1);
 		Selector selector;
 
 		switch (symbol){
-			case DOT: selector = new IdSelector(Character.toString(symbol)); break;
-			case POUND_SIGN: selector = new ClassSelector(Character.toString(symbol)); break;
-
+			case DOT: selector = new IdSelector(tagName); break;
+			case POUND_SIGN: selector = new ClassSelector(tagName); break;
 			default: selector = new TagSelector(Character.toString(symbol));
 		}
 
 		currentContainer.peek().addChild(selector);
 	}
 
-	@Override public void exitSelector(ICSSParser.SelectorContext ctx) {
-
-	}
+	@Override public void exitSelector(ICSSParser.SelectorContext ctx) { }
 
 	@Override public void enterDeclaration(ICSSParser.DeclarationContext ctx) {
 		Declaration declaration = new Declaration();
@@ -166,26 +163,6 @@ public class ASTListener extends ICSSBaseListener {
 		}
 	}
 
-	private boolean expressionIsPercentageLiteral(String text) {
-		return text.charAt(text.length() - 1) == PERCENTAGE;
-	}
-
-	private boolean expressionIsPixelLiteral(String text) {
-		return text.charAt(text.length() - 1) == X;
-	}
-
-	private boolean expressionIsColorLiteral(String text) {
-		return text.charAt(0) == POUND_SIGN;
-	}
-
-	private boolean expressionIsVariableReference(String text) {
-		return Character.isUpperCase(text.charAt(0));
-	}
-
-	private boolean expressionIsOperation(ICSSParser.ExpressionContext ctx ){
-		return ctx.children.size() > 1;
-	}
-
 	@Override public void exitExpression(ICSSParser.ExpressionContext ctx) {
 		if (ctx.children.size() > 1) { currentContainer.pop(); }
 	}
@@ -224,4 +201,23 @@ public class ASTListener extends ICSSBaseListener {
 
 	@Override public void visitErrorNode(ErrorNode node) { }
 
+	private boolean expressionIsPercentageLiteral(String text) {
+		return text.charAt(text.length() - 1) == PERCENTAGE;
+	}
+
+	private boolean expressionIsPixelLiteral(String text) {
+		return text.charAt(text.length() - 1) == X;
+	}
+
+	private boolean expressionIsColorLiteral(String text) {
+		return text.charAt(0) == POUND_SIGN;
+	}
+
+	private boolean expressionIsVariableReference(String text) {
+		return Character.isUpperCase(text.charAt(0));
+	}
+
+	private boolean expressionIsOperation(ICSSParser.ExpressionContext ctx ){
+		return ctx.children.size() > 1;
+	}
 }
