@@ -1,0 +1,18 @@
+Condition := TRUE;
+Condition2 := FALSE;
+
+p {
+
+   background-color: Red;
+
+   if[Condition] {
+
+        Red := #ff0000;
+
+        if[Condition2] {
+            SizeOfUniverse := 9999px;
+        }
+
+        width: SizeOfUniverse;
+   }
+}

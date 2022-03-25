@@ -39,10 +39,6 @@ public class Generator {
 			newString += getLiteralAsString((Literal) node) + SEMICOLON + EOL;
 		}
 
-        if(node instanceof ColorLiteral && container.peek() instanceof Declaration){
-            //newString += getLiteralAsString((Literal) node) + SEMICOLON + EOL;
-        }
-
 		if(node instanceof Declaration) newString += SPACE + SPACE + ((Declaration) node).property.name + COLON + SPACE;
 		if(node instanceof ClassSelector) newString += CLASS_TAG + ((ClassSelector) node).cls + SPACE + OPEN_BRACE + EOL;
 		if(node instanceof IdSelector)  newString += ID_TAG + ((IdSelector) node).id + SPACE + OPEN_BRACE + EOL;
@@ -54,7 +50,7 @@ public class Generator {
 
 		container.pop();
 
-		if(node instanceof Stylerule) newString += CLOSE_BRACE + EOL;
+		if(node instanceof Stylerule) newString += CLOSE_BRACE + EOL + EOL;
 
 		return newString;
 	}

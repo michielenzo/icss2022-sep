@@ -1,0 +1,9 @@
+Condition := FALSE;
+
+p {
+    if[Condition] {
+        width: 10px;
+    } else {
+        width: 20px;
+    }
+}

@@ -1,0 +1,6 @@
+ParHeight := 20px;
+
+a {
+    width: ParWidth;
+    height: ParHeight;
+}

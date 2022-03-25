@@ -1,0 +1,8 @@
+AdjustColor := 20px;
+
+a {
+    if[AdjustColor] {
+        width: 20px;
+    }
+}
+

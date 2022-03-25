@@ -14,7 +14,7 @@ propertyName: COLOR_PROP | BG_COLOR_PROP | WIDTH_PROP | HEIGHT_PROP;
 variableAssignment: variableReference ASSIGNMENT_OPERATOR expression SEMICOLON;
 variableReference: CAPITAL_IDENT;
 expression: expression operation expression | (literal | variableReference);
-operation: PLUS | MIN | MUL;
+operation: MUL | MIN | PLUS;
 
 // IF ELSE
 ifClause: IF BOX_BRACKET_OPEN (TRUE | FALSE | variableReference) BOX_BRACKET_CLOSE
